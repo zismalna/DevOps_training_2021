@@ -4,7 +4,7 @@
 
 Creating a new repository and verifying my global settings:
 
-![git init and git config](./images/1.png "new repo")
+![git init and git config](./images/img1.png "new repo")
 
 Checking repo status and adding output to *status.txt*:
 
