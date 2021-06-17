@@ -1,0 +1,25 @@
+services:
+
+  db:
+    env_file:
+      - /home/ubuntu/db.env
+    image: mysql:$TAG
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - "3306:3306"
+
+  web:
+    env_file:
+      - /home/ubuntu/web.env
+    build: $DOCKERFILE
+    ports:
+      - "8080-8090:80"
+  java:
+    env_file:
+      - /home/ubuntu/java.env
+    image: milkyway/tomcat7-jre7
+    depends_on:
+      - $DEPENDENCY
+    ports:
+      - "8123:8080"

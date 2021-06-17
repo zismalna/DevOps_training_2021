@@ -64,3 +64,77 @@ sudo docker push zismalna/devops:latest
 ```
 
 
+### Docker-compose
+
+When applying
+
+```sh
+sudo docker-compose up -d --scale web=5
+```
+
+We spin 5 web instances, 1 db instance, and 1 java app instance, as per this docker-compose file:
+
+```sh
+services:
+
+  db:
+    env_file:
+      - /home/ubuntu/db.env
+    image: mysql:$TAG
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - "3306:3306"
+
+  web:
+    env_file:
+      - /home/ubuntu/web.env
+    build: $DOCKERFILE
+    ports:
+      - "8080-8090:80"
+  java:
+    env_file:
+      - /home/ubuntu/java.env
+    image: milkyway/tomcat7-jre7
+    depends_on:
+      - $DEPENDENCY
+    ports:
+      - "8123:8080"
+```
+
+The instances:
+
+![instances](./images/compose.png "instances")
+
+.env files:
+
+The .env file passes variables to *docker-compose.yml*, while *web.env*,. *db.env*, and *java.env* pass variables into containers built by *docker-compose*:
+
+```sh
+cat .env
+
+TAG=latest
+DOCKERFILE=/home/ubuntu
+DEPENDENCY="db"
+
+cat db.env
+MYSQL_ROOT_PASSWORD=example
+
+cat web.env
+MYNAME="M.Lopayev"
+```
+
+Checking if variables are passed into containers:
+
+MySQL containder:
+
+![mysql](./images/mysql.png "instance1")
+
+Nginx container:
+
+![web](./images/env1.png "instance2")
+
+
+
+
+
