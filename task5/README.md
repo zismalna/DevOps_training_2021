@@ -285,4 +285,195 @@ Checking variable in container:
       command: docker cp /home/ubuntu/instance1.pem jenkins_agent:/home/jenkins
 ```
 
+### Docker registry on remote host:
+
+This pipeline sets up docker registry, pushes docker image to the registry, pulls it back, and runs docker container:
+
+```sh
+pipeline {
+    agent {
+        node {
+            label 'ubuntu1'
+        }
+        } 
+    stages {
+        stage('Build') {
+            steps {
+                sh '''ssh-keyscan -H 172.17.0.1 >> ~/.ssh/known_hosts
+                ssh -i ~/instance1.pem -t ubuntu@172.17.0.1 docker run -d -p 5000:5000 --restart=always --name doc_rep registry:2
+				'''
+		stage('pull test image'){
+            steps{
+                sh'''
+                    ssh -i ~/instance1.pem -t ubuntu@172.17.0.1 docker pull hello-world
+                '''
+            }
+        }
+        stage('push to local repository'){
+            steps{
+                sh'''
+                    ssh -i ~/instance1.pem -t ubuntu@172.17.0.1 docker tag hello-world localhost:5000/my-hello-world
+                    ssh -i ~/instance1.pem -t ubuntu@172.17.0.1 docker push localhost:5000/my-hello-world
+                    ssh -i ~/instance1.pem -t ubuntu@172.17.0.1 docker image remove hello-world
+                    ssh -i ~/instance1.pem -t ubuntu@172.17.0.1 docker image remove localhost:5000/my-hello-world
+                '''
+            }
+        }
+        stage('pull from local repository'){
+            steps{
+                sh'''
+                    ssh -i ~/instance1.pem -t ubuntu@172.17.0.1 docker pull localhost:5000/my-hello-world
+                    ssh -i ~/instance1.pem -t ubuntu@172.17.0.1 docker images
+                '''
+            }
+        }
+        stage('deploy test image'){
+            steps{
+                sh'''
+                    ssh -i ~/instance1.pem -t ubuntu@172.17.0.1 docker run -d --name helloworld1 localhost:5000/my-hello-world
+                '''
+            }
+        }
+    }
+}
+```
+
+Jenkins console output:
+
+```sh
+Started by user Michael Lopaiev
+Running in Durability level: MAX_SURVIVABILITY
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on agent1 in /home/jenkins/workspace/docker registry
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Build)
+[Pipeline] sh
++ ssh-keyscan -H 172.17.0.1
+# 172.17.0.1:22 SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2
+# 172.17.0.1:22 SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2
+# 172.17.0.1:22 SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.2
++ ssh -i /home/jenkins/instance1.pem -t ubuntu@172.17.0.1 docker run -d -p 5000:5000 --restart=always --name doc_rep registry:2
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+Unable to find image 'registry:2' locally
+2: Pulling from library/registry
+ddad3d7c1e96: Pulling fs layer
+6eda6749503f: Pulling fs layer
+363ab70c2143: Pulling fs layer
+5b94580856e6: Pulling fs layer
+12008541203a: Pulling fs layer
+5b94580856e6: Waiting
+12008541203a: Waiting
+6eda6749503f: Verifying Checksum
+6eda6749503f: Download complete
+ddad3d7c1e96: Verifying Checksum
+ddad3d7c1e96: Download complete
+363ab70c2143: Verifying Checksum
+363ab70c2143: Download complete
+5b94580856e6: Verifying Checksum
+5b94580856e6: Download complete
+12008541203a: Verifying Checksum
+12008541203a: Download complete
+ddad3d7c1e96: Pull complete
+6eda6749503f: Pull complete
+363ab70c2143: Pull complete
+5b94580856e6: Pull complete
+12008541203a: Pull complete
+Digest: sha256:aba2bfe9f0cff1ac0618ec4a54bfefb2e685bbac67c8ebaf3b6405929b3e616f
+Status: Downloaded newer image for registry:2
+49f4af63495a832f87051e3e996555b86d06159f348b10e93931343a0141a974
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (pull test image)
+[Pipeline] sh
++ ssh -i /home/jenkins/instance1.pem -t ubuntu@172.17.0.1 docker pull hello-world
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+Using default tag: latest
+latest: Pulling from library/hello-world
+b8dfde127a29: Pulling fs layer
+b8dfde127a29: Verifying Checksum
+b8dfde127a29: Download complete
+b8dfde127a29: Pull complete
+Digest: sha256:9f6ad537c5132bcce57f7a0a20e317228d382c3cd61edae14650eec68b2b345c
+Status: Downloaded newer image for hello-world:latest
+docker.io/library/hello-world:latest
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (push to local repository)
+[Pipeline] sh
++ ssh -i /home/jenkins/instance1.pem -t ubuntu@172.17.0.1 docker tag hello-world localhost:5000/my-hello-world
+Pseudo-terminal will not be allocated because stdin is not a terminal.
++ ssh -i /home/jenkins/instance1.pem -t ubuntu@172.17.0.1 docker push localhost:5000/my-hello-world
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+Using default tag: latest
+The push refers to repository [localhost:5000/my-hello-world]
+f22b99068db9: Preparing
+f22b99068db9: Pushed
+latest: digest: sha256:1b26826f602946860c279fce658f31050cff2c596583af237d971f4629b57792 size: 525
++ ssh -i /home/jenkins/instance1.pem -t ubuntu@172.17.0.1 docker image remove hello-world
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+Untagged: hello-world:latest
+Untagged: hello-world@sha256:9f6ad537c5132bcce57f7a0a20e317228d382c3cd61edae14650eec68b2b345c
++ ssh -i /home/jenkins/instance1.pem -t ubuntu@172.17.0.1 docker image remove localhost:5000/my-hello-world
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+Untagged: localhost:5000/my-hello-world:latest
+Untagged: localhost:5000/my-hello-world@sha256:1b26826f602946860c279fce658f31050cff2c596583af237d971f4629b57792
+Deleted: sha256:d1165f2212346b2bab48cb01c1e39ee8ad1be46b87873d9ca7a4e434980a7726
+Deleted: sha256:f22b99068db93900abe17f7f5e09ec775c2826ecfe9db961fea68293744144bd
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (pull from local repository)
+[Pipeline] sh
++ ssh -i /home/jenkins/instance1.pem -t ubuntu@172.17.0.1 docker pull localhost:5000/my-hello-world
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+Using default tag: latest
+latest: Pulling from my-hello-world
+b8dfde127a29: Pulling fs layer
+b8dfde127a29: Verifying Checksum
+b8dfde127a29: Download complete
+b8dfde127a29: Pull complete
+Digest: sha256:1b26826f602946860c279fce658f31050cff2c596583af237d971f4629b57792
+Status: Downloaded newer image for localhost:5000/my-hello-world:latest
+localhost:5000/my-hello-world:latest
++ ssh -i /home/jenkins/instance1.pem -t ubuntu@172.17.0.1 docker images
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+REPOSITORY                      TAG       IMAGE ID       CREATED        SIZE
+nginx1                          latest    422e361e56e2   2 days ago     161MB
+ubuntu                          latest    9873176a8ff5   13 days ago    72.7MB
+php                             7.4-cli   3f13ef15ce95   3 weeks ago    420MB
+nginx                           latest    d1a364dc548d   5 weeks ago    133MB
+mysql                           latest    c0cdc95609f1   7 weeks ago    556MB
+registry                        2         1fd8e1b0bb7e   2 months ago   26.2MB
+localhost:5000/my-hello-world   latest    d1165f221234   3 months ago   13.3kB
+jenkins/ssh-agent               latest    30c405b39b48   4 months ago   518MB
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (deploy test image)
+[Pipeline] sh
++ ssh -i /home/jenkins/instance1.pem -t ubuntu@172.17.0.1 docker run -d --name helloworld1 localhost:5000/my-hello-world
+Pseudo-terminal will not be allocated because stdin is not a terminal.
+6c3833cbbba6ea7503065493c9362821cb0c46bafb768d674553bc48a4455ade
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
+```
+
+### Jenkins and Github
+
+1. Added webhook for GitHub
+2. Generated token
+3. Added token to Jenkins
+4. Configured Jenkins job
+
+Result:
+
+![Github](./images/github_int.png "done")
 
