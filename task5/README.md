@@ -186,7 +186,7 @@ pipeline {
             }
         }
     }
-```sh
+```
 
 Result:
 
