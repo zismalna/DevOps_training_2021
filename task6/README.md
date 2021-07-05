@@ -4,7 +4,7 @@ Running MySQL in Docker with credentials stored in *.env* file:
 
 ```sh
 docker run --name task6-mysql -v ~/datadir:/var/lib/mysql --env-file mysql.env -d -p 3306:3306 mysql:latest
-```sh
+```
 
 After creating database *task6*, let us create the tables:
 
