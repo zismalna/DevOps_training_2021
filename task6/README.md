@@ -72,7 +72,7 @@ Querying database for my results by surname:
 ### Making backup, deleting a database, and restoring it
 
 ```sh
-mysqldump --databases networking > dump1.sql
+mysqldump --databases task6 > dump1.sql
 ```
 
 ![dbrestore](./images/restore.png "restoring database")
