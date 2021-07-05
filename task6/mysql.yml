@@ -48,7 +48,7 @@
         src: /home/ubuntu/dump1.sql
         dest: /home/ubuntu/dump1.sql        
         
-    - name: Copy ssh key to Docker container
+    - name: Copy dump file to Docker container
       command: docker cp /home/ubuntu/dump1.sql mysql_task6:/home/jenkins
 	
     - name: Restore database from dump
